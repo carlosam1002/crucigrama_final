@@ -4,7 +4,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
-import 'providers.dart';
+import 'widgets/crossword_generator_app.dart';
 
 void main() {
   runApp(
@@ -16,23 +16,7 @@ void main() {
           colorSchemeSeed: Colors.blueGrey,
           brightness: Brightness.light,
         ),
-        home: Scaffold(
-          body: Center(
-            child: Consumer(
-              builder: (context, ref, _) {
-                final wordList = ref.watch(wordListProvider);
-                return wordList.when(
-                  data: (words) => Text(
-                    'Palabras cargadas: ${words.length}',
-                    style: const TextStyle(fontSize: 24),
-                  ),
-                  loading: () => const CircularProgressIndicator(),
-                  error: (error, stackTrace) => Text('$error'),
-                );
-              },
-            ),
-          ),
-        ),
+        home: const CrosswordGeneratorApp(),
       ),
     ),
   );
