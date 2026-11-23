@@ -63,6 +63,20 @@ class _CrosswordGeneratorMenu extends ConsumerWidget {
               : const Icon(Icons.radio_button_unchecked_outlined),
           child: Text(entry.label),
         ),
+      SubmenuButton(
+        menuChildren: [
+          for (final count in BackgroundWorkers.values)
+            MenuItemButton(
+              onPressed: () =>
+                  ref.read(workerCountProvider.notifier).setCount(count),
+              leadingIcon: count == ref.watch(workerCountProvider)
+                  ? const Icon(Icons.radio_button_checked_outlined)
+                  : const Icon(Icons.radio_button_unchecked_outlined),
+              child: Text(count.label),
+            ),
+        ],
+        child: const Text('Workers en segundo plano'),
+      ),
       MenuItemButton(
         onPressed: () => ref.read(showDisplayInfoProvider.notifier).toggle(),
         leadingIcon: ref.watch(showDisplayInfoProvider)

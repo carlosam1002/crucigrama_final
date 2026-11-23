@@ -35,7 +35,12 @@ class CrosswordWidget extends ConsumerWidget {
               (wq) => wq.value?.crossword.characters[location],
             ),
           );
-          const explorationCell = false;
+          // Casillas que los workers están explorando en este momento.
+          final explorationCell = ref.watch(
+            workQueueProvider.select(
+              (wq) => wq.value?.locationsToTry.containsKey(location) ?? false,
+            ),
+          );
           final colors = Theme.of(context).colorScheme;
 
           if (character != null) {

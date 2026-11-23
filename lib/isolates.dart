@@ -7,45 +7,82 @@ import 'package:flutter/foundation.dart';
 import 'model.dart';
 import 'utils.dart';
 
-/// Explora soluciones con una cola de trabajo: en vez de probar ubicaciones
-/// al azar, prueba las intersecciones abiertas del crucigrama.
+/// Explora soluciones del crucigrama en segundo plano y emite cada
+/// estado intermedio de la cola de trabajo.
 Stream<WorkQueue> exploreCrosswordSolutions({
   required Crossword crossword,
   required BuiltSet<String> wordList,
+  required int maxWorkerCount,
 }) async* {
+  final start = DateTime.now();
   var workQueue = WorkQueue.from(
     crossword: crossword,
     candidateWords: wordList,
     startLocation: Location.at(0, 0),
   );
-
   while (!workQueue.isCompleted) {
-    final location = workQueue.locationsToTry.keys.toBuiltSet().randomElement();
-    final direction = workQueue.locationsToTry[location]!;
-
     try {
-      final (wordLocation, wordDirection, word) = await compute(
-        _generateCandidate,
-        (workQueue.crossword, workQueue.candidateWords, location, direction),
-      );
-
-      final candidate = word == null
-          ? null
-          : workQueue.crossword.addWord(
-              location: wordLocation,
-              word: word,
-              direction: wordDirection,
-            );
-
-      workQueue = candidate == null
-          ? workQueue.remove(location)
-          : workQueue.updateFrom(candidate);
+      workQueue = await compute(_generate, (workQueue, maxWorkerCount));
       yield workQueue;
     } catch (e) {
       debugPrint('Error ejecutando el isolate: $e');
-      workQueue = workQueue.remove(location);
     }
   }
+
+  debugPrint(
+    'Crucigrama de ${workQueue.crossword.width} x '
+    '${workQueue.crossword.height} generado en '
+    '${DateTime.now().difference(start).formatted} '
+    'con $maxWorkerCount workers.',
+  );
+}
+
+/// Un paso de la búsqueda: lanza hasta [maxWorkerCount] isolates en paralelo,
+/// cada uno probando una ubicación distinta.
+Future<WorkQueue> _generate((WorkQueue, int) workMessage) async {
+  var (workQueue, maxWorkerCount) = workMessage;
+  final candidateGeneratorFutures = <Future<(Location, Direction, String?)>>[];
+  final locations = workQueue.locationsToTry.keys.toBuiltList().rebuild(
+    (b) => b
+      ..shuffle()
+      ..take(maxWorkerCount),
+  );
+
+  for (final location in locations) {
+    final direction = workQueue.locationsToTry[location]!;
+    candidateGeneratorFutures.add(
+      compute(_generateCandidate, (
+        workQueue.crossword,
+        workQueue.candidateWords,
+        location,
+        direction,
+      )),
+    );
+  }
+
+  try {
+    final results = await candidateGeneratorFutures.wait;
+    var crossword = workQueue.crossword;
+    for (final (location, direction, word) in results) {
+      if (word != null) {
+        final candidate = crossword.addWord(
+          location: location,
+          word: word,
+          direction: direction,
+        );
+        if (candidate != null) {
+          crossword = candidate;
+        }
+      } else {
+        workQueue = workQueue.remove(location);
+      }
+    }
+    workQueue = workQueue.updateFrom(crossword);
+  } catch (e) {
+    debugPrint('$e');
+  }
+
+  return workQueue;
 }
 
 /// Busca una palabra que encaje en [location] en la dirección indicada.
