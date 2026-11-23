@@ -5,11 +5,12 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:built_collection/built_collection.dart';
-import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter/foundation.dart' show compute, debugPrint;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:riverpod/riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import 'isolates.dart';
 import 'model.dart' as model;
 import 'utils.dart';
 
@@ -58,8 +59,10 @@ class Size extends _$Size {
 
 final _random = Random();
 
-/// Agrega palabras al azar en ubicaciones al azar, sin respetar todavía
-/// las reglas del crucigrama.
+/// Intenta agregar palabras al azar respetando las reglas del crucigrama.
+/// Cada intento corre en un isolate aparte con compute() para no trabar la
+/// interfaz. Como las ubicaciones son al azar, la mayoría de los intentos
+/// fallan: se corta después de muchos fallos seguidos.
 @riverpod
 Stream<model.Crossword> crossword(Ref ref) async* {
   final size = ref.watch(sizeProvider);
@@ -72,7 +75,8 @@ Stream<model.Crossword> crossword(Ref ref) async* {
 
   yield* wordListAsync.when(
     data: (wordList) async* {
-      while (current.characters.length < size.width * size.height * 0.8) {
+      var failures = 0;
+      while (failures < 300) {
         final word = wordList.randomElement();
         final direction = _random.nextBool()
             ? model.Direction.across
@@ -82,14 +86,26 @@ Stream<model.Crossword> crossword(Ref ref) async* {
           _random.nextInt(size.height),
         );
 
-        current = current.addWord(
-          word: word,
-          direction: direction,
-          location: location,
-        );
-        yield current;
-        await Future<void>.delayed(const Duration(milliseconds: 100));
+        try {
+          final candidate = await compute(tryAddWord, (
+            current,
+            word,
+            direction,
+            location,
+          ));
+          if (candidate != null) {
+            current = candidate;
+            failures = 0;
+            yield current;
+          } else {
+            failures++;
+          }
+        } catch (e) {
+          debugPrint('Error ejecutando el isolate: $e');
+          failures++;
+        }
       }
+      debugPrint('Generación terminada: ${current.words.length} palabras.');
       yield current;
     },
     error: (error, stackTrace) async* {

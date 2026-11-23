@@ -127,13 +127,94 @@ abstract class Crossword implements Built<Crossword, CrosswordBuilder> {
   /// Letras por ubicación (se calcula automáticamente a partir de [words]).
   BuiltMap<Location, CrosswordCharacter> get characters;
 
-  /// Agrega una palabra sin verificar ninguna regla (todavía).
-  Crossword addWord({
+  /// Verifica que el crucigrama cumpla todas las restricciones.
+  bool get valid {
+    // Sin palabras repetidas.
+    final wordSet = words.map((word) => word.word).toBuiltSet();
+    if (wordSet.length != words.length) {
+      return false;
+    }
+
+    for (final MapEntry(key: location, value: character)
+        in characters.entries) {
+      // Toda letra debe pertenecer a alguna palabra.
+      if (character.acrossWord == null && character.downWord == null) {
+        return false;
+      }
+
+      // Toda letra debe estar dentro de la grilla.
+      if (location.x < 0 ||
+          location.y < 0 ||
+          location.x >= width ||
+          location.y >= height) {
+        return false;
+      }
+
+      // Letras arriba y abajo deben estar unidas por la misma palabra vertical.
+      if (characters[location.up] case final up?) {
+        if (character.downWord == null) return false;
+        if (up.downWord != character.downWord) return false;
+      }
+      if (characters[location.down] case final down?) {
+        if (character.downWord == null) return false;
+        if (down.downWord != character.downWord) return false;
+      }
+
+      // Letras a izquierda y derecha deben estar unidas por la misma
+      // palabra horizontal.
+      if (characters[location.left] case final left?) {
+        if (character.acrossWord == null) return false;
+        if (left.acrossWord != character.acrossWord) return false;
+      }
+      if (characters[location.right] case final right?) {
+        if (character.acrossWord == null) return false;
+        if (right.acrossWord != character.acrossWord) return false;
+      }
+    }
+
+    return true;
+  }
+
+  /// Intenta agregar una palabra. Devuelve el nuevo crucigrama o `null` si
+  /// la palabra no se puede colocar.
+  Crossword? addWord({
     required Location location,
     required String word,
     required Direction direction,
+    bool requireOverlap = true,
   }) {
-    return rebuild(
+    if (words.map((crosswordWord) => crosswordWord.word).contains(word)) {
+      return null;
+    }
+
+    final wordCharacters = word.characters;
+    bool overlap = false;
+
+    for (final (index, character) in wordCharacters.indexed) {
+      final characterLocation = switch (direction) {
+        Direction.across => location.rightOffset(index),
+        Direction.down => location.downOffset(index),
+      };
+
+      final target = characters[characterLocation];
+      if (target != null) {
+        overlap = true;
+        if (target.character != character) {
+          return null;
+        }
+        if (direction == Direction.across && target.acrossWord != null ||
+            direction == Direction.down && target.downWord != null) {
+          return null;
+        }
+      }
+    }
+
+    // Exigir cruce con otra palabra (salvo que la grilla esté vacía).
+    if (words.isNotEmpty && !overlap && requireOverlap) {
+      return null;
+    }
+
+    final candidate = rebuild(
       (b) => b
         ..words.add(
           CrosswordWord.word(
@@ -143,6 +224,8 @@ abstract class Crossword implements Built<Crossword, CrosswordBuilder> {
           ),
         ),
     );
+
+    return candidate.valid ? candidate : null;
   }
 
   /// Hook de built_value: completa el mapa [characters] después de cada build.

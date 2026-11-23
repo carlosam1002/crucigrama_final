@@ -113,14 +113,18 @@ abstract class _$Size extends $Notifier<CrosswordSize> {
   }
 }
 
-/// Agrega palabras al azar en ubicaciones al azar, sin respetar todavía
-/// las reglas del crucigrama.
+/// Intenta agregar palabras al azar respetando las reglas del crucigrama.
+/// Cada intento corre en un isolate aparte con compute() para no trabar la
+/// interfaz. Como las ubicaciones son al azar, la mayoría de los intentos
+/// fallan: se corta después de muchos fallos seguidos.
 
 @ProviderFor(crossword)
 const crosswordProvider = CrosswordProvider._();
 
-/// Agrega palabras al azar en ubicaciones al azar, sin respetar todavía
-/// las reglas del crucigrama.
+/// Intenta agregar palabras al azar respetando las reglas del crucigrama.
+/// Cada intento corre en un isolate aparte con compute() para no trabar la
+/// interfaz. Como las ubicaciones son al azar, la mayoría de los intentos
+/// fallan: se corta después de muchos fallos seguidos.
 
 final class CrosswordProvider
     extends
@@ -130,8 +134,10 @@ final class CrosswordProvider
           Stream<model.Crossword>
         >
     with $FutureModifier<model.Crossword>, $StreamProvider<model.Crossword> {
-  /// Agrega palabras al azar en ubicaciones al azar, sin respetar todavía
-  /// las reglas del crucigrama.
+  /// Intenta agregar palabras al azar respetando las reglas del crucigrama.
+  /// Cada intento corre en un isolate aparte con compute() para no trabar la
+  /// interfaz. Como las ubicaciones son al azar, la mayoría de los intentos
+  /// fallan: se corta después de muchos fallos seguidos.
   const CrosswordProvider._()
     : super(
         from: null,
@@ -158,4 +164,4 @@ final class CrosswordProvider
   }
 }
 
-String _$crosswordHash() => r'56e9fa797923bbce2879ea0045675c5f3f67dea4';
+String _$crosswordHash() => r'064b587b8b6bcfbf6127fe85ff340e1fd5871f39';
