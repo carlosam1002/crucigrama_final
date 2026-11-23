@@ -2,17 +2,15 @@
 // Copyright 2024 The Flutter Authors. Licencia estilo BSD.
 
 import 'dart:convert';
-import 'dart:math';
 
 import 'package:built_collection/built_collection.dart';
-import 'package:flutter/foundation.dart' show compute, debugPrint;
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:riverpod/riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'isolates.dart';
 import 'model.dart' as model;
-import 'utils.dart';
 
 part 'providers.g.dart';
 
@@ -57,63 +55,33 @@ class Size extends _$Size {
   void setSize(CrosswordSize size) => state = size;
 }
 
-final _random = Random();
-
-/// Intenta agregar palabras al azar respetando las reglas del crucigrama.
-/// Cada intento corre en un isolate aparte con compute() para no trabar la
-/// interfaz. Como las ubicaciones son al azar, la mayoría de los intentos
-/// fallan: se corta después de muchos fallos seguidos.
+/// Genera el crucigrama con la cola de trabajo y emite cada paso.
 @riverpod
-Stream<model.Crossword> crossword(Ref ref) async* {
+Stream<model.WorkQueue> workQueue(Ref ref) async* {
   final size = ref.watch(sizeProvider);
   final wordListAsync = ref.watch(wordListProvider);
 
-  var current = model.Crossword.crossword(
+  final emptyCrossword = model.Crossword.crossword(
     width: size.width,
     height: size.height,
   );
+  final emptyWorkQueue = model.WorkQueue.from(
+    crossword: emptyCrossword,
+    candidateWords: BuiltSet<String>(),
+    startLocation: model.Location.at(0, 0),
+  );
 
   yield* wordListAsync.when(
-    data: (wordList) async* {
-      var failures = 0;
-      while (failures < 300) {
-        final word = wordList.randomElement();
-        final direction = _random.nextBool()
-            ? model.Direction.across
-            : model.Direction.down;
-        final location = model.Location.at(
-          _random.nextInt(size.width),
-          _random.nextInt(size.height),
-        );
-
-        try {
-          final candidate = await compute(tryAddWord, (
-            current,
-            word,
-            direction,
-            location,
-          ));
-          if (candidate != null) {
-            current = candidate;
-            failures = 0;
-            yield current;
-          } else {
-            failures++;
-          }
-        } catch (e) {
-          debugPrint('Error ejecutando el isolate: $e');
-          failures++;
-        }
-      }
-      debugPrint('Generación terminada: ${current.words.length} palabras.');
-      yield current;
-    },
+    data: (wordList) => exploreCrosswordSolutions(
+      crossword: emptyCrossword,
+      wordList: wordList,
+    ),
     error: (error, stackTrace) async* {
       debugPrint('Error cargando la lista de palabras: $error');
-      yield current;
+      yield emptyWorkQueue;
     },
     loading: () async* {
-      yield current;
+      yield emptyWorkQueue;
     },
   );
 }

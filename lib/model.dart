@@ -312,10 +312,106 @@ abstract class Crossword implements Built<Crossword, CrosswordBuilder> {
   Crossword._();
 }
 
+/// Cola de trabajo: el crucigrama actual, las ubicaciones por probar, las
+/// ubicaciones descartadas y las palabras candidatas que quedan.
+abstract class WorkQueue implements Built<WorkQueue, WorkQueueBuilder> {
+  static Serializer<WorkQueue> get serializer => _$workQueueSerializer;
+
+  Crossword get crossword;
+  BuiltMap<Location, Direction> get locationsToTry;
+  BuiltSet<Location> get badLocations;
+  BuiltSet<String> get candidateWords;
+
+  bool get isCompleted => locationsToTry.isEmpty || candidateWords.isEmpty;
+
+  static WorkQueue from({
+    required Crossword crossword,
+    required Iterable<String> candidateWords,
+    required Location startLocation,
+  }) => WorkQueue((b) {
+    if (crossword.words.isEmpty) {
+      // Descartar palabras más largas que el ancho de la grilla.
+      b.candidateWords.addAll(
+        candidateWords.where(
+          (word) => word.characters.length <= crossword.width,
+        ),
+      );
+      b.crossword.replace(crossword);
+      b.locationsToTry.addAll({startLocation: Direction.across});
+    } else {
+      b.candidateWords.addAll(
+        candidateWords.toBuiltSet().rebuild(
+          (b) => b.removeAll(crossword.words.map((word) => word.word)),
+        ),
+      );
+      b.crossword.replace(crossword);
+
+      // Ubicaciones abiertas: letras que todavía pueden recibir una palabra
+      // cruzada.
+      crossword.characters
+          .rebuild(
+            (b) => b.removeWhere((location, character) {
+              if (character.acrossWord != null && character.downWord != null) {
+                return true;
+              }
+              final left = crossword.characters[location.left];
+              if (left != null && left.downWord != null) return true;
+              final right = crossword.characters[location.right];
+              if (right != null && right.downWord != null) return true;
+              final up = crossword.characters[location.up];
+              if (up != null && up.acrossWord != null) return true;
+              final down = crossword.characters[location.down];
+              if (down != null && down.acrossWord != null) return true;
+              return false;
+            }),
+          )
+          .forEach((location, character) {
+            b.locationsToTry.addAll({
+              location: switch ((character.acrossWord, character.downWord)) {
+                (null, null) => throw StateError(
+                  'La letra no pertenece a ninguna palabra',
+                ),
+                (null, _) => Direction.across,
+                (_, null) => Direction.down,
+                (_, _) => throw StateError(
+                  'La letra pertenece a dos palabras',
+                ),
+              },
+            });
+          });
+    }
+  });
+
+  WorkQueue remove(Location location) => rebuild(
+    (b) => b
+      ..locationsToTry.remove(location)
+      ..badLocations.add(location),
+  );
+
+  WorkQueue updateFrom(Crossword crossword) =>
+      WorkQueue.from(
+        crossword: crossword,
+        candidateWords: candidateWords,
+        startLocation: locationsToTry.isNotEmpty
+            ? locationsToTry.keys.first
+            : Location.at(0, 0),
+      ).rebuild(
+        (b) => b
+          ..badLocations.addAll(badLocations)
+          ..locationsToTry.removeWhere(
+            (location, _) => badLocations.contains(location),
+          ),
+      );
+
+  factory WorkQueue([void Function(WorkQueueBuilder)? updates]) = _$WorkQueue;
+  WorkQueue._();
+}
+
 @SerializersFor([
   Location,
   Crossword,
   CrosswordWord,
   CrosswordCharacter,
+  WorkQueue,
 ])
 final Serializers serializers = _$serializers;

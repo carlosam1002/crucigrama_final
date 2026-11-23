@@ -31,8 +31,8 @@ class CrosswordWidget extends ConsumerWidget {
       child: Consumer(
         builder: (context, ref, _) {
           final character = ref.watch(
-            crosswordProvider.select(
-              (crossword) => crossword.value?.characters[location],
+            workQueueProvider.select(
+              (wq) => wq.value?.crossword.characters[location],
             ),
           );
           const explorationCell = false;

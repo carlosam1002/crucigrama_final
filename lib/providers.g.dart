@@ -113,55 +113,46 @@ abstract class _$Size extends $Notifier<CrosswordSize> {
   }
 }
 
-/// Intenta agregar palabras al azar respetando las reglas del crucigrama.
-/// Cada intento corre en un isolate aparte con compute() para no trabar la
-/// interfaz. Como las ubicaciones son al azar, la mayoría de los intentos
-/// fallan: se corta después de muchos fallos seguidos.
+/// Genera el crucigrama con la cola de trabajo y emite cada paso.
 
-@ProviderFor(crossword)
-const crosswordProvider = CrosswordProvider._();
+@ProviderFor(workQueue)
+const workQueueProvider = WorkQueueProvider._();
 
-/// Intenta agregar palabras al azar respetando las reglas del crucigrama.
-/// Cada intento corre en un isolate aparte con compute() para no trabar la
-/// interfaz. Como las ubicaciones son al azar, la mayoría de los intentos
-/// fallan: se corta después de muchos fallos seguidos.
+/// Genera el crucigrama con la cola de trabajo y emite cada paso.
 
-final class CrosswordProvider
+final class WorkQueueProvider
     extends
         $FunctionalProvider<
-          AsyncValue<model.Crossword>,
-          model.Crossword,
-          Stream<model.Crossword>
+          AsyncValue<model.WorkQueue>,
+          model.WorkQueue,
+          Stream<model.WorkQueue>
         >
-    with $FutureModifier<model.Crossword>, $StreamProvider<model.Crossword> {
-  /// Intenta agregar palabras al azar respetando las reglas del crucigrama.
-  /// Cada intento corre en un isolate aparte con compute() para no trabar la
-  /// interfaz. Como las ubicaciones son al azar, la mayoría de los intentos
-  /// fallan: se corta después de muchos fallos seguidos.
-  const CrosswordProvider._()
+    with $FutureModifier<model.WorkQueue>, $StreamProvider<model.WorkQueue> {
+  /// Genera el crucigrama con la cola de trabajo y emite cada paso.
+  const WorkQueueProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
-        name: r'crosswordProvider',
+        name: r'workQueueProvider',
         isAutoDispose: true,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
 
   @override
-  String debugGetCreateSourceHash() => _$crosswordHash();
+  String debugGetCreateSourceHash() => _$workQueueHash();
 
   @$internal
   @override
-  $StreamProviderElement<model.Crossword> $createElement(
+  $StreamProviderElement<model.WorkQueue> $createElement(
     $ProviderPointer pointer,
   ) => $StreamProviderElement(pointer);
 
   @override
-  Stream<model.Crossword> create(Ref ref) {
-    return crossword(ref);
+  Stream<model.WorkQueue> create(Ref ref) {
+    return workQueue(ref);
   }
 }
 
-String _$crosswordHash() => r'064b587b8b6bcfbf6127fe85ff340e1fd5871f39';
+String _$workQueueHash() => r'8a944aef0e560f3850ef87ec96fd54a083ec1bb9';
