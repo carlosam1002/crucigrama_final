@@ -1,0 +1,28 @@
+// Basado en el codelab "Crea un acertijo de palabras con Flutter".
+// Copyright 2024 The Flutter Authors. Licencia estilo BSD.
+
+import 'dart:convert';
+
+import 'package:built_collection/built_collection.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:riverpod/riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+part 'providers.g.dart';
+
+/// Carga la lista de palabras desde assets/words.txt.
+/// Solo se quedan palabras en minúscula a-z de más de 2 letras.
+@riverpod
+Future<BuiltSet<String>> wordList(Ref ref) async {
+  final re = RegExp(r'^[a-z]+$');
+  final words = await rootBundle.loadString('assets/words.txt');
+  return const LineSplitter()
+      .convert(words)
+      .toBuiltSet()
+      .rebuild(
+        (b) => b
+          ..map((word) => word.toLowerCase().trim())
+          ..where((word) => word.length > 2)
+          ..where((word) => re.hasMatch(word)),
+      );
+}
