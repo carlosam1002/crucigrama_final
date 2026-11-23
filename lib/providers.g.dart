@@ -113,12 +113,187 @@ abstract class _$Size extends $Notifier<CrosswordSize> {
   }
 }
 
-/// Genera el crucigrama con la cola de trabajo y emite cada paso.
+/// Momento en que empezó la generación.
+
+@ProviderFor(StartTime)
+const startTimeProvider = StartTimeProvider._();
+
+/// Momento en que empezó la generación.
+final class StartTimeProvider extends $NotifierProvider<StartTime, DateTime?> {
+  /// Momento en que empezó la generación.
+  const StartTimeProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'startTimeProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$startTimeHash();
+
+  @$internal
+  @override
+  StartTime create() => StartTime();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(DateTime? value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<DateTime?>(value),
+    );
+  }
+}
+
+String _$startTimeHash() => r'aced96ef5d2ace2a4e9bee398a0165f3fef010d2';
+
+/// Momento en que empezó la generación.
+
+abstract class _$StartTime extends $Notifier<DateTime?> {
+  DateTime? build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final created = build();
+    final ref = this.ref as $Ref<DateTime?, DateTime?>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<DateTime?, DateTime?>,
+              DateTime?,
+              Object?,
+              Object?
+            >;
+    element.handleValue(ref, created);
+  }
+}
+
+/// Momento en que terminó la generación (null mientras sigue).
+
+@ProviderFor(EndTime)
+const endTimeProvider = EndTimeProvider._();
+
+/// Momento en que terminó la generación (null mientras sigue).
+final class EndTimeProvider extends $NotifierProvider<EndTime, DateTime?> {
+  /// Momento en que terminó la generación (null mientras sigue).
+  const EndTimeProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'endTimeProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$endTimeHash();
+
+  @$internal
+  @override
+  EndTime create() => EndTime();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(DateTime? value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<DateTime?>(value),
+    );
+  }
+}
+
+String _$endTimeHash() => r'6c3f78f03f2b97d96ba7068c497afb0158b11543';
+
+/// Momento en que terminó la generación (null mientras sigue).
+
+abstract class _$EndTime extends $Notifier<DateTime?> {
+  DateTime? build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final created = build();
+    final ref = this.ref as $Ref<DateTime?, DateTime?>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<DateTime?, DateTime?>,
+              DateTime?,
+              Object?,
+              Object?
+            >;
+    element.handleValue(ref, created);
+  }
+}
+
+/// Mostrar u ocultar el panel de estadísticas.
+
+@ProviderFor(ShowDisplayInfo)
+const showDisplayInfoProvider = ShowDisplayInfoProvider._();
+
+/// Mostrar u ocultar el panel de estadísticas.
+final class ShowDisplayInfoProvider
+    extends $NotifierProvider<ShowDisplayInfo, bool> {
+  /// Mostrar u ocultar el panel de estadísticas.
+  const ShowDisplayInfoProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'showDisplayInfoProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$showDisplayInfoHash();
+
+  @$internal
+  @override
+  ShowDisplayInfo create() => ShowDisplayInfo();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(bool value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<bool>(value),
+    );
+  }
+}
+
+String _$showDisplayInfoHash() => r'b2431424d49a736527acd8bbffc93d2abf4935a2';
+
+/// Mostrar u ocultar el panel de estadísticas.
+
+abstract class _$ShowDisplayInfo extends $Notifier<bool> {
+  bool build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final created = build();
+    final ref = this.ref as $Ref<bool, bool>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<bool, bool>,
+              bool,
+              Object?,
+              Object?
+            >;
+    element.handleValue(ref, created);
+  }
+}
+
+/// Genera el crucigrama en segundo plano y emite cada paso de la búsqueda.
 
 @ProviderFor(workQueue)
 const workQueueProvider = WorkQueueProvider._();
 
-/// Genera el crucigrama con la cola de trabajo y emite cada paso.
+/// Genera el crucigrama en segundo plano y emite cada paso de la búsqueda.
 
 final class WorkQueueProvider
     extends
@@ -128,7 +303,7 @@ final class WorkQueueProvider
           Stream<model.WorkQueue>
         >
     with $FutureModifier<model.WorkQueue>, $StreamProvider<model.WorkQueue> {
-  /// Genera el crucigrama con la cola de trabajo y emite cada paso.
+  /// Genera el crucigrama en segundo plano y emite cada paso de la búsqueda.
   const WorkQueueProvider._()
     : super(
         from: null,
@@ -155,4 +330,4 @@ final class WorkQueueProvider
   }
 }
 
-String _$workQueueHash() => r'8a944aef0e560f3850ef87ec96fd54a083ec1bb9';
+String _$workQueueHash() => r'c762069d6300a310222db0653edecfdba912a68b';
