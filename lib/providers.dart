@@ -4,7 +4,7 @@
 import 'dart:convert';
 
 import 'package:built_collection/built_collection.dart';
-import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter/foundation.dart' show compute, debugPrint;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:riverpod/riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -151,3 +151,99 @@ Stream<model.WorkQueue> workQueue(Ref ref) async* {
     ref.read(endTimeProvider.notifier).end();
   }
 }
+
+/// Estado del juego. Cuando termina la generación, arma el acertijo en un
+/// isolate aparte.
+@riverpod
+class Puzzle extends _$Puzzle {
+  model.CrosswordPuzzleGame _puzzle = model.CrosswordPuzzleGame.from(
+    crossword: model.Crossword.crossword(width: 0, height: 0),
+    candidateWords: BuiltSet<String>(),
+  );
+
+  @override
+  model.CrosswordPuzzleGame build() {
+    final size = ref.watch(sizeProvider);
+    final wordList = ref.watch(wordListProvider).value;
+    final workQueue = ref.watch(workQueueProvider).value;
+
+    // Si se empezó a generar un crucigrama nuevo, descartar el juego anterior.
+    if (workQueue != null &&
+        !workQueue.isCompleted &&
+        _puzzle.crossword.words.isNotEmpty) {
+      _puzzle = model.CrosswordPuzzleGame.from(
+        crossword: model.Crossword.crossword(
+          width: size.width,
+          height: size.height,
+        ),
+        candidateWords: BuiltSet<String>(),
+      );
+    }
+
+    if (wordList != null &&
+        workQueue != null &&
+        workQueue.isCompleted &&
+        (_puzzle.crossword.height != size.height ||
+            _puzzle.crossword.width != size.width ||
+            _puzzle.crossword != workQueue.crossword)) {
+      compute(_puzzleFromCrosswordTrampoline, (
+        workQueue.crossword,
+        wordList,
+      )).then((puzzle) {
+        if (!ref.mounted) return;
+        _puzzle = puzzle;
+        ref.invalidateSelf();
+      });
+    }
+
+    return _puzzle;
+  }
+
+  Future<void> selectWord({
+    required model.Location location,
+    required String word,
+    required model.Direction direction,
+  }) async {
+    final candidate = await compute(_puzzleSelectWordTrampoline, (
+      _puzzle,
+      location,
+      word,
+      direction,
+    ));
+
+    if (!ref.mounted) return;
+    if (candidate != null) {
+      _puzzle = candidate;
+      ref.invalidateSelf();
+    } else {
+      debugPrint('Selección de palabra inválida: $word');
+    }
+  }
+
+  bool canSelectWord({
+    required model.Location location,
+    required String word,
+    required model.Direction direction,
+  }) => _puzzle.canSelectWord(
+    location: location,
+    word: word,
+    direction: direction,
+  );
+}
+
+// Funciones "trampolín" de nivel superior: evitan que compute() capture la
+// referencia al Notifier, que no se puede enviar a otro isolate.
+model.CrosswordPuzzleGame _puzzleFromCrosswordTrampoline(
+  (model.Crossword, BuiltSet<String>) inputs,
+) => model.CrosswordPuzzleGame.from(
+  crossword: inputs.$1,
+  candidateWords: inputs.$2,
+);
+
+model.CrosswordPuzzleGame? _puzzleSelectWordTrampoline(
+  (model.CrosswordPuzzleGame, model.Location, String, model.Direction) inputs,
+) => inputs.$1.selectWord(
+  location: inputs.$2,
+  word: inputs.$3,
+  direction: inputs.$4,
+);

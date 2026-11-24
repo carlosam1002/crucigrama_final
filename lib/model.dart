@@ -448,6 +448,156 @@ abstract class DisplayInfo implements Built<DisplayInfo, DisplayInfoBuilder> {
   DisplayInfo._();
 }
 
+/// El juego: crucigrama oculto, palabras alternativas por pista y las
+/// palabras que eligió el jugador.
+abstract class CrosswordPuzzleGame
+    implements Built<CrosswordPuzzleGame, CrosswordPuzzleGameBuilder> {
+  static Serializer<CrosswordPuzzleGame> get serializer =>
+      _$crosswordPuzzleGameSerializer;
+
+  Crossword get crossword;
+  BuiltMap<Location, BuiltMap<Direction, BuiltList<String>>> get alternateWords;
+  BuiltList<CrosswordWord> get selectedWords;
+
+  /// Quita la palabra elegida previamente en la misma posición y dirección.
+  CrosswordPuzzleGame _withoutSelectionAt(
+    Location location,
+    Direction direction,
+  ) {
+    if (selectedWords.any(
+      (w) => w.direction == direction && w.location == location,
+    )) {
+      return rebuild(
+        (b) => b
+          ..selectedWords.removeWhere(
+            (w) => w.location == location && w.direction == direction,
+          ),
+      );
+    }
+    return this;
+  }
+
+  bool canSelectWord({
+    required Location location,
+    required String word,
+    required Direction direction,
+  }) {
+    final crosswordWord = CrosswordWord.word(
+      word: word,
+      location: location,
+      direction: direction,
+    );
+    if (selectedWords.contains(crosswordWord)) {
+      return true;
+    }
+
+    final puzzle = _withoutSelectionAt(location, direction);
+    return null !=
+        puzzle.crosswordFromSelectedWords.addWord(
+          location: location,
+          word: word,
+          direction: direction,
+          requireOverlap: false,
+        );
+  }
+
+  CrosswordPuzzleGame? selectWord({
+    required Location location,
+    required String word,
+    required Direction direction,
+  }) {
+    final crosswordWord = CrosswordWord.word(
+      word: word,
+      location: location,
+      direction: direction,
+    );
+
+    // Tocar una palabra ya elegida la deselecciona.
+    if (selectedWords.contains(crosswordWord)) {
+      return rebuild((b) => b.selectedWords.remove(crosswordWord));
+    }
+
+    final puzzle = _withoutSelectionAt(location, direction);
+
+    // No se exige cruce, así el jugador puede completar en cualquier orden.
+    final updated = puzzle.crosswordFromSelectedWords.addWord(
+      location: location,
+      word: word,
+      direction: direction,
+      requireOverlap: false,
+    );
+
+    if (updated != null &&
+        (puzzle.crossword.words.contains(crosswordWord) ||
+            puzzle.alternateWords[location]?[direction]?.contains(word) ==
+                true)) {
+      return puzzle.rebuild((b) => b..selectedWords.add(crosswordWord));
+    }
+    return null;
+  }
+
+  Crossword get crosswordFromSelectedWords => Crossword.crossword(
+    width: crossword.width,
+    height: crossword.height,
+    words: selectedWords,
+  );
+
+  /// Resuelto: grilla válida y misma cantidad de palabras que la solución
+  /// (admite soluciones alternativas).
+  bool get solved =>
+      crosswordFromSelectedWords.valid &&
+      crosswordFromSelectedWords.words.length == crossword.words.length &&
+      crossword.words.isNotEmpty;
+
+  factory CrosswordPuzzleGame.from({
+    required Crossword crossword,
+    required BuiltSet<String> candidateWords,
+  }) {
+    candidateWords = candidateWords.rebuild(
+      (b) => b.removeAll(crossword.words.map((w) => w.word)),
+    );
+
+    var alternates =
+        BuiltMap<Location, BuiltMap<Direction, BuiltList<String>>>();
+
+    // Hasta 4 palabras alternativas del mismo largo para cada pista.
+    for (final crosswordWord in crossword.words) {
+      final alternateWords = candidateWords.toBuiltList().rebuild(
+        (b) => b
+          ..where((w) => w.length == crosswordWord.word.length)
+          ..shuffle()
+          ..take(4)
+          ..sort(),
+      );
+
+      candidateWords = candidateWords.rebuild(
+        (b) => b.removeAll(alternateWords),
+      );
+
+      alternates = alternates.rebuild(
+        (b) => b.updateValue(
+          crosswordWord.location,
+          (m) => m.rebuild(
+            (mb) => mb[crosswordWord.direction] = alternateWords,
+          ),
+          ifAbsent: () => {crosswordWord.direction: alternateWords}.build(),
+        ),
+      );
+    }
+
+    return CrosswordPuzzleGame(
+      (b) => b
+        ..crossword.replace(crossword)
+        ..alternateWords.replace(alternates),
+    );
+  }
+
+  factory CrosswordPuzzleGame([
+    void Function(CrosswordPuzzleGameBuilder)? updates,
+  ]) = _$CrosswordPuzzleGame;
+  CrosswordPuzzleGame._();
+}
+
 @SerializersFor([
   Location,
   Crossword,
@@ -455,5 +605,6 @@ abstract class DisplayInfo implements Built<DisplayInfo, DisplayInfoBuilder> {
   CrosswordCharacter,
   WorkQueue,
   DisplayInfo,
+  CrosswordPuzzleGame,
 ])
 final Serializers serializers = _$serializers;

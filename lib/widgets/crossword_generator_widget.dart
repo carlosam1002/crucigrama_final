@@ -6,21 +6,30 @@ import 'package:two_dimensional_scrollables/two_dimensional_scrollables.dart';
 
 import '../model.dart';
 import '../providers.dart';
+import 'crossword_info_widget.dart';
 
-/// Muestra la grilla del crucigrama con un TableView de dos dimensiones.
-class CrosswordWidget extends ConsumerWidget {
-  const CrosswordWidget({super.key});
+/// Muestra el crucigrama mientras se genera. Las letras se ocultan con un
+/// punto y las casillas que se están explorando se resaltan.
+class CrosswordGeneratorWidget extends ConsumerWidget {
+  const CrosswordGeneratorWidget({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final size = ref.watch(sizeProvider);
-    return TableView.builder(
-      diagonalDragBehavior: DiagonalDragBehavior.free,
-      cellBuilder: _buildCell,
-      columnCount: size.width,
-      columnBuilder: (index) => _buildSpan(context, index),
-      rowCount: size.height,
-      rowBuilder: (index) => _buildSpan(context, index),
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: TableView.builder(
+            diagonalDragBehavior: DiagonalDragBehavior.free,
+            cellBuilder: _buildCell,
+            columnCount: size.width,
+            columnBuilder: (index) => _buildSpan(context, index),
+            rowCount: size.height,
+            rowBuilder: (index) => _buildSpan(context, index),
+          ),
+        ),
+        const CrosswordInfoWidget(),
+      ],
     );
   }
 
@@ -35,7 +44,6 @@ class CrosswordWidget extends ConsumerWidget {
               (wq) => wq.value?.crossword.characters[location],
             ),
           );
-          // Casillas que los workers están explorando en este momento.
           final explorationCell = ref.watch(
             workQueueProvider.select(
               (wq) => wq.value?.locationsToTry.containsKey(location) ?? false,
@@ -56,7 +64,7 @@ class CrosswordWidget extends ConsumerWidget {
                     fontSize: 24,
                     color: explorationCell ? colors.onPrimary : colors.primary,
                   ),
-                  child: Text(character.character),
+                  child: const Text('•'), // https://www.compart.com/en/unicode/U+2022
                 ),
               ),
             );

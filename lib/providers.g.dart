@@ -384,3 +384,67 @@ final class WorkQueueProvider
 }
 
 String _$workQueueHash() => r'53683a86a88a5a890a1461654c2b0e8bec3ae6c8';
+
+/// Estado del juego. Cuando termina la generación, arma el acertijo en un
+/// isolate aparte.
+
+@ProviderFor(Puzzle)
+const puzzleProvider = PuzzleProvider._();
+
+/// Estado del juego. Cuando termina la generación, arma el acertijo en un
+/// isolate aparte.
+final class PuzzleProvider
+    extends $NotifierProvider<Puzzle, model.CrosswordPuzzleGame> {
+  /// Estado del juego. Cuando termina la generación, arma el acertijo en un
+  /// isolate aparte.
+  const PuzzleProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'puzzleProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$puzzleHash();
+
+  @$internal
+  @override
+  Puzzle create() => Puzzle();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(model.CrosswordPuzzleGame value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<model.CrosswordPuzzleGame>(value),
+    );
+  }
+}
+
+String _$puzzleHash() => r'42944d3da64386bba004d1478d68b1b0fac2049d';
+
+/// Estado del juego. Cuando termina la generación, arma el acertijo en un
+/// isolate aparte.
+
+abstract class _$Puzzle extends $Notifier<model.CrosswordPuzzleGame> {
+  model.CrosswordPuzzleGame build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final created = build();
+    final ref =
+        this.ref as $Ref<model.CrosswordPuzzleGame, model.CrosswordPuzzleGame>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<model.CrosswordPuzzleGame, model.CrosswordPuzzleGame>,
+              model.CrosswordPuzzleGame,
+              Object?,
+              Object?
+            >;
+    element.handleValue(ref, created);
+  }
+}
